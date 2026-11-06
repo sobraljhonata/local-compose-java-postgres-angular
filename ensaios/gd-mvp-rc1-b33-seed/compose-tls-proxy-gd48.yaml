@@ -1,0 +1,20 @@
+# GD-48 — proxy HTTPS isolado para enrollment QR (ensaio).
+# Porta host: 127.0.0.1:28443 → nginx:8443 → BFF ensaio :28081
+# Rollback: docker compose -f compose-tls-proxy-gd48.yaml down  (sem -v necessário)
+# NÃO altera API/Auth/PG. NÃO publica registry.
+
+name: gd-mvp-rc1-tls-proxy-gd48
+
+services:
+  tls-proxy-gd48:
+    image: nginx:alpine
+    container_name: autua-local-tls-proxy-gd48
+    restart: "no"
+    ports:
+      - "127.0.0.1:28443:8443"
+    volumes:
+      - ./tls-proxy-gd48/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./tls-proxy-gd48/certs/server.crt:/etc/nginx/certs/server.crt:ro
+      - ./tls-proxy-gd48/certs/server.key:/etc/nginx/certs/server.key:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

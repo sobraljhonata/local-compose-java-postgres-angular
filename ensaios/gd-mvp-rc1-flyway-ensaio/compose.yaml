@@ -1,0 +1,33 @@
+﻿# ENSAIO ISOLADO B.4.4-B.1 — NÃO é o Compose definitivo.
+# Projeto: gd-mvp-rc1-flyway-ensaio
+# NÃO aponta para autua_local_compose_pgdata nem porta 5434.
+
+name: gd-mvp-rc1-flyway-ensaio
+
+networks:
+  ensaio:
+    name: gd-mvp-rc1-flyway-ensaio-net
+
+volumes:
+  pgdata:
+    name: gd_mvp_rc1_flyway_ensaio_pgdata
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: gd-mvp-rc1-flyway-ensaio
+    restart: "no"
+    environment:
+      POSTGRES_DB: autua_local
+      POSTGRES_USER: autua
+      POSTGRES_PASSWORD: ensaio_local_only_not_prod
+    ports:
+      - "127.0.0.1:15434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [ensaio]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20

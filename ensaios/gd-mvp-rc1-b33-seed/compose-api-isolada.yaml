@@ -1,0 +1,86 @@
+# B.4.4-B.3.3 Fase B — API RC1 ISOLADA (não substitui autua-local-api).
+# Imagem: autua-api:gd-mvp-rc1-a079891a
+# Porta host: 28080 (≠ 18080)
+# JDBC: gd-mvp-rc1-flyway-ensaio (volume gd_mvp_rc1_flyway_ensaio_pgdata) — NÃO o definitivo.
+# Auth: auth-mock-ensaio-b33 dedicado (não altera o auth-mock principal).
+
+name: gd-mvp-rc1-api-ensaio-b33
+
+networks:
+  ensaio:
+    external: true
+    name: gd-mvp-rc1-flyway-ensaio-net
+  autua_bridge:
+    name: gd-mvp-rc1-api-ensaio-b33-net
+
+services:
+  auth-mock-ensaio-b33:
+    image: autua-local-auth-mock
+    container_name: autua-local-auth-mock-ensaio-b33
+    restart: "no"
+    environment:
+      PORT: "8080"
+      LOCAL_ISSUER: "http://auth-mock-ensaio-b33:8080/realms/autua-local"
+      LOCAL_PUBLIC_BASE: "http://127.0.0.1:28082"
+      LOCAL_AZP: "10197_radar"
+      LOCAL_ORGAO_CNPJ: "00000000000191"
+      LOCAL_ORGAO_ID: "919001"
+      LOCAL_UNIDADE_ID: "91910"
+      LOCAL_KEY_DIR: "/var/lib/autua-local-keys-ensaio-b33"
+    ports:
+      - "127.0.0.1:28082:8080"
+    networks: [ensaio, autua_bridge]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  api-ensaio-b33:
+    image: autua-api:gd-mvp-rc1-a079891a
+    container_name: autua-local-api-ensaio-b33
+    restart: "no"
+    depends_on:
+      auth-mock-ensaio-b33:
+        condition: service_healthy
+    environment:
+      SERVICE_PORT: "8080"
+      SERVER_PORT: "8080"
+      CONTEXT_PATH: /autua-api
+      SPRING_PROFILES_ACTIVE: ""
+      # JDBC comprovado → PG descartável (hostname Docker do ensaio)
+      DATASOURCE_CLUSTER_N1_SERVERNAME: gd-mvp-rc1-flyway-ensaio
+      DATASOURCE_PORTNUMBER: "5432"
+      DATASOURCE_DATABASENAME: autua_local
+      DATASOURCE_USER_NAME: autua_app
+      DATASOURCE_PASSWORD: autua_app_local_only
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+      # History já em 38 no ensaio — migrate deve ser no-op; validate relaxado como no stack local
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_FLYWAY_LOCATIONS: classpath:db/migration
+      SPRING_FLYWAY_DEFAULT_SCHEMA: boat_relacional
+      SPRING_FLYWAY_TABLE: flyway_schema_history_boat
+      AUTUA_API_PERMISSION_BYPASS_ENABLED: "false"
+      CORS_URLS: "http://localhost:14200,http://127.0.0.1:14200"
+      GELUS_ISSUER_URI: "http://auth-mock-ensaio-b33:8080/realms/autua-local"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://auth-mock-ensaio-b33:8080/realms/autua-local"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-mock-ensaio-b33:8080/realms/autua-local/protocol/openid-connect/certs"
+      GESTAO_USUARIOS_API_URL: "http://auth-mock-ensaio-b33:8080"
+      # Evita default corporativo (d-keycloak) — client_credentials só no Auth Mock isolado
+      AUTUA_API_GELUS_PERMISSIONS_ENDPOINT: "http://auth-mock-ensaio-b33:8080/realms/autua-local/protocol/openid-connect/token"
+      AUTUA_API_GELUS_CLIENT_ID: "autua-local"
+      AUTUA_API_GELUS_CLIENT_SECRET: "autua-local-secret"
+      # AES-256 (Base64 32 bytes) — obrigatório para POST …/gestao/{id}/codigos-ativacao.
+      # Chave sintética exclusiva do ensaio B33; não reutilizar em produção.
+      AUTUA_CODIGO_ATIVACAO_CHAVE: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    ports:
+      - "127.0.0.1:28080:8080"
+    networks: [ensaio, autua_bridge]
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 3 bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 40
+      start_period: 120s

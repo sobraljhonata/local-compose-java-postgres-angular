@@ -1,0 +1,31 @@
+-- B.4.4-B.3.3 Fase B — grants para role de aplicação no PG DESCARTÁVEL (ensaio).
+-- NÃO executar no PostgreSQL definitivo.
+-- Alinha privilégios ao padrão comprovado em autua-local-postgres (autua_app).
+
+BEGIN;
+
+GRANT USAGE ON SCHEMA radar_relacional TO autua_app;
+GRANT USAGE ON SCHEMA boat_relacional TO autua_app;
+GRANT USAGE ON SCHEMA public TO autua_app;
+GRANT USAGE ON SCHEMA radar TO autua_app;
+GRANT USAGE ON SCHEMA autua TO autua_app;
+GRANT USAGE ON SCHEMA radar_talonario_processamento_externo TO autua_app;
+
+GRANT SELECT, INSERT, UPDATE, DELETE, REFERENCES, TRIGGER ON ALL TABLES IN SCHEMA radar_relacional TO autua_app;
+GRANT SELECT, INSERT, UPDATE, DELETE, REFERENCES, TRIGGER ON ALL TABLES IN SCHEMA boat_relacional TO autua_app;
+GRANT SELECT, INSERT, UPDATE, DELETE, REFERENCES, TRIGGER ON ALL TABLES IN SCHEMA public TO autua_app;
+GRANT SELECT, INSERT, UPDATE, DELETE, REFERENCES, TRIGGER ON ALL TABLES IN SCHEMA radar TO autua_app;
+GRANT SELECT, INSERT, UPDATE, DELETE, REFERENCES, TRIGGER ON ALL TABLES IN SCHEMA autua TO autua_app;
+GRANT SELECT, INSERT, UPDATE, DELETE, REFERENCES, TRIGGER ON ALL TABLES IN SCHEMA radar_talonario_processamento_externo TO autua_app;
+
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA radar_relacional TO autua_app;
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA boat_relacional TO autua_app;
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO autua_app;
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA radar TO autua_app;
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA autua TO autua_app;
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA radar_talonario_processamento_externo TO autua_app;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA radar_relacional GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO autua_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA boat_relacional GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO autua_app;
+
+COMMIT;

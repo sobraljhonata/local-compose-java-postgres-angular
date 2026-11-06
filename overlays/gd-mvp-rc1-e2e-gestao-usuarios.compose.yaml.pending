@@ -1,0 +1,41 @@
+# PENDENTE — B.4.4-B.3.2 (auditoria 2026-11-04).
+# NÃO aplicar sem autorização adicional E sem resolver órgão no contexto.
+#
+# Este overlay sozinho NÃO basta para INSTITUCIONAL/TODOS.
+#
+# Cadeia comprovada:
+#   JWT/header CNPJ → OrgaoBC.buscarOrgaoPorCnpj
+#   OU CPF → OrgaoBC.recuperarOrgaoUsuario
+#   → getOrgaoId()
+#   → GestaoUsuariosApiIntegracao.buscarUnidadeAutuadoraId(orgaoId,cpf)
+#   → UnidadeAutuadoraBC.load(unidadeId)
+#   → DispositivoGestaoConsultaBC.orgaoDaUnidadeAtual()
+#
+# Bloqueio atual no PostgreSQL definitivo (dump sanitizado):
+#   - 0 instituições com CNPJ de 14 dígitos (valores SYN_*).
+#   - CPF sintético local-ok ausente em radar_relacional.tb_usuario.
+#   → getOrgaoId()=null → unidade=null SEM chamar gestao-usuarios.
+#
+# Pré-requisitos além deste overlay (fora do escopo B.3.2 / proibidos no definitivo):
+#   A) CNPJ JWT/header compatível com INST_CNPJ real no banco, OU
+#   B) usuário sintético com CPF+órgão no banco, OU
+#   C) banco descartável com dados sintéticos coerentes.
+#
+# Quando (A/B/C) resolvido + autorizado recreate API:
+#   renomear removendo .pending e:
+#   docker compose -f compose.yaml \
+#     -f overlays/gd-mvp-rc1.compose.yaml \
+#     -f overlays/gd-mvp-rc1-e2e-saneamento.compose.yaml \
+#     -f overlays/gd-mvp-rc1-e2e-gestao-usuarios.compose.yaml \
+#     --profile auth-mock --profile web up -d --no-build autua-api auth-mock
+#
+# Hostname Docker: auth-mock:8080 (NÃO localhost).
+# LOCAL_UNIDADE_ID=10 existe no dump; 9001 NÃO existe.
+
+services:
+  autua-api:
+    environment:
+      GESTAO_USUARIOS_API_URL: "http://auth-mock:8080"
+  auth-mock:
+    environment:
+      LOCAL_UNIDADE_ID: "10"

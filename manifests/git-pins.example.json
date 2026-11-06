@@ -1,0 +1,26 @@
+{
+  "mode": "homolog",
+  "capturedAt": "ISO-8601",
+  "repos": [
+    {
+      "name": "autua-api",
+      "branch": "HEAD",
+      "sha": "6e89e8ae41f3ae9392c6bb4660a0b1f2a13f1f40",
+      "dirty": false
+    },
+    {
+      "name": "autua-bff",
+      "branch": "feature/enrollment-consumir-qr",
+      "sha": "aa576cb",
+      "dirty": false,
+      "note": "Em dev pode estar dirty; homolog exige limpo ou AUTUA_ALLOW_DIRTY=1"
+    },
+    {
+      "name": "autua-web-frontend",
+      "branch": "fix/filtros-data-placa",
+      "sha": "1756612",
+      "dirty": true,
+      "note": "I5.1 + WIP MAD — declarar explicitamente em homolog"
+    }
+  ]
+}

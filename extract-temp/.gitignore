@@ -1,0 +1,4 @@
+﻿out/
+*.dump
+*.dump.sha256
+*.log

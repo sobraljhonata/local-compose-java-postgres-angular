@@ -1,0 +1,14 @@
+.git
+.idea
+.vscode
+target
+**/*.iml
+**/.DS_Store
+*.log
+docs
+.m2
+**/*-run.log*
+.env
+.env.*
+*.md
+docker-compose*.yml

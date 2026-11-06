@@ -1,0 +1,58 @@
+# B.4.4-B.3.4 — BFF RC1 ISOLADO (não substitui autua-local-bff).
+# Imagem atual: autua-bff:gd-mvp-rc1-0d10274 (build local a partir do worktree release/gd-mvp-rc1 @ 0d10274)
+# Rollback: restaurar image autua-bff:gd-mvp-rc1-76709128 e `docker compose up -d --no-deps --force-recreate bff-ensaio-b34`
+# GD-48: PUBLIC_BASE_URL HTTPS via tls-proxy-gd48 (:28443). Rollback URL: http://127.0.0.1:28081/autua-bff
+# Porta host: 28081 (≠ 18081)
+# Upstream API: api-ensaio-b33 na rede gd-mvp-rc1-api-ensaio-b33-net
+# Auth: auth-mock-ensaio-b33 (mesmo issuer da API isolada)
+# NÃO altera stack principal. NÃO cria PG. NÃO recria API/Auth Mock.
+
+name: gd-mvp-rc1-bff-ensaio-b34
+
+networks:
+  ensaio_api:
+    external: true
+    name: gd-mvp-rc1-api-ensaio-b33-net
+
+services:
+  bff-ensaio-b34:
+    image: autua-bff:gd-mvp-rc1-0d10274
+    container_name: autua-local-bff-ensaio-b34
+    restart: "no"
+    environment:
+      SERVER_PORT: "8081"
+      # Upstream Gestão — somente API isolada
+      AUTUA_BFF_AUTUA_API_BASE_URL: "http://api-ensaio-b33:8080/autua-api"
+      # HTTPS para QrEnrollmentParser (APP). Proxy: compose-tls-proxy-gd48.yaml :28443
+      AUTUA_BFF_PUBLIC_BASE_URL: "https://127.0.0.1:28443/autua-bff"
+      # Issuer / JWKS do Auth Mock isolado (≠ principal :18082)
+      GELUS_ISSUER_URI: "http://auth-mock-ensaio-b33:8080/realms/autua-local"
+      JWT_ISSUER_URI: "http://auth-mock-ensaio-b33:8080/realms/autua-local"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://auth-mock-ensaio-b33:8080/realms/autua-local"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-mock-ensaio-b33:8080/realms/autua-local/protocol/openid-connect/certs"
+      GELUS_CLIENT_ID: "autua-local"
+      GELUS_CLIENT_SECRET: "autua-local-secret"
+      GELUS_AUDIENCE: "10197_radar"
+      # Auth login / renovação — só mock local (RenovacaoAccessTokenFilter falha soft)
+      AUTUA_BFF_AUTH_LOGIN_BASE_URL: "http://auth-mock-ensaio-b33:8080/auth/login"
+      AUTUA_BFF_AUTENTICACAO_API_BASE_URL: "http://auth-mock-ensaio-b33:8080"
+      # Neutralizar defaults corporativos de clients NÃO usados no fluxo Gestão
+      AUTUA_BFF_CONSULTAS_INTEGRADORES_API_BASE_URL: "http://auth-mock-ensaio-b33:8080/unused-consultas"
+      AUTUA_BFF_GESTAO_ORGAO_API_BASE_URL: "http://auth-mock-ensaio-b33:8080/unused-gestao-orgao"
+      AUTUA_BFF_CORS_ENABLED: "true"
+      # 14200 = Web compose principal; 14201 = Web RC1; 14203 = worktree correção PARTICULAR
+      AUTUA_BFF_CORS_ALLOWED_ORIGINS: "http://localhost:14200,http://127.0.0.1:14200,http://localhost:14201,http://127.0.0.1:14201,http://localhost:14203,http://127.0.0.1:14203"
+      AUTUA_BFF_CORS_ALLOW_CREDENTIALS: "false"
+      MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+      MANAGEMENT_HEALTH_ELASTICSEARCH_ENABLED: "false"
+      AUTUA_BFF_RUNTIME_DIAGNOSTICS_ENABLED: "true"
+      AUTUA_BFF_EGRESS_DIAGNOSTICS_ENABLED: "true"
+    ports:
+      - "127.0.0.1:28081:8081"
+    networks: [ensaio_api]
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 3 bash -c 'exec 3<>/dev/tcp/127.0.0.1/8081' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 40
+      start_period: 90s

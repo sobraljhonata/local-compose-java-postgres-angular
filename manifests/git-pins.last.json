@@ -1,0 +1,33 @@
+{
+  "capturedAt": "2026-11-06T08:37:42.5781935-04:00",
+  "mode": "dev",
+  "repos": [
+    {
+      "name": "autua-api",
+      "path": "C:\\dev\\Projetos\\serpro\\autua-api",
+      "branch": "develop",
+      "sha": "9b898bc261b485bfd6fcbc1ebdf2050cca48ef15",
+      "shaShort": "9b898bc2",
+      "dirtyFileCount": 6,
+      "dirty": true
+    },
+    {
+      "name": "autua-bff",
+      "path": "C:\\dev\\Projetos\\serpro\\autua-bff",
+      "branch": "feature/enrollment-consumir-qr",
+      "sha": "aa576cb659ecb7a909c7afc6154ceb5d13a29e85",
+      "shaShort": "aa576cb",
+      "dirtyFileCount": 52,
+      "dirty": true
+    },
+    {
+      "name": "autua-web-frontend",
+      "path": "C:\\dev\\Projetos\\serpro\\autua-web-frontend",
+      "branch": "fix/filtros-data-placa",
+      "sha": "664ddcca28dafc3c761a730b60f704d5f977af0f",
+      "shaShort": "664ddcc",
+      "dirtyFileCount": 25,
+      "dirty": true
+    }
+  ]
+}

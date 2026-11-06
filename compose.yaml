@@ -1,0 +1,184 @@
+# AUTUA local-compose — desenvolvimento / homologação local
+# Código: clones em ../autua-api, ../autua-bff, ../autua-web-frontend
+# NÃO faz git checkout/pull. NÃO reutiliza volume autua_gd_pgdata_local.
+# Fase B (up + restore) exige autorização explícita.
+#
+# Conflito conhecido: stack host atual pode ocupar 4200/8080/8081/5433.
+# Resolver antes do up OU sobrescrever portas via .env.
+
+name: autua-local
+
+networks:
+  autua-local:
+    name: autua-local-net
+
+volumes:
+  autua_local_compose_pgdata:
+    name: autua_local_compose_pgdata
+  autua_web_node_modules:
+    name: autua_web_node_modules
+
+services:
+  postgres:
+    # Dumps locais observados: PostgreSQL 17.10 — alinhar major version no restore.
+    image: postgres:${POSTGRES_IMAGE_TAG:-17-alpine}
+    container_name: autua-local-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-autua_local}
+      POSTGRES_USER: ${POSTGRES_USER:-autua}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      - autua_local_compose_pgdata:/var/lib/postgresql/data
+      - ./database/restore:/restore:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks: [autua-local]
+
+  auth-mock:
+    profiles: ["auth-mock"]
+    build:
+      context: ./docker/auth-mock
+    container_name: autua-local-auth-mock
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      LOCAL_ISSUER: ${LOCAL_ISSUER:-http://auth-mock:8080/realms/autua-local}
+      LOCAL_PUBLIC_BASE: ${LOCAL_PUBLIC_BASE:-http://127.0.0.1:18082}
+      LOCAL_AZP: ${LOCAL_AZP:-10197_radar}
+      LOCAL_CLIENT_ID: ${LOCAL_CLIENT_ID:-autua-local}
+      LOCAL_CLIENT_SECRET: ${LOCAL_CLIENT_SECRET:-autua-local-secret}
+      LOCAL_ORGAO_CNPJ: ${LOCAL_ORGAO_CNPJ:-00000000000191}
+      LOCAL_ORGAO_ID: ${LOCAL_ORGAO_ID:-9001}
+      LOCAL_UNIDADE_ID: ${LOCAL_UNIDADE_ID:-9001}
+      LOCAL_KEY_DIR: /var/lib/autua-local-keys
+    ports:
+      - "127.0.0.1:${AUTH_MOCK_HOST_PORT:-18082}:8080"
+    volumes:
+      - ./docker/auth-mock/keys:/var/lib/autua-local-keys
+    networks: [autua-local]
+
+  autua-api:
+    build:
+      context: ../autua-api
+      dockerfile: ../autua-local-compose/docker/api/Dockerfile
+    image: autua-local/api:${AUTUA_IMAGE_TAG:-dev}
+    container_name: autua-local-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SERVICE_PORT: "8080"
+      SERVER_PORT: "8080"
+      CONTEXT_PATH: /autua-api
+      SPRING_PROFILES_ACTIVE: ${API_SPRING_PROFILES_ACTIVE:-}
+      DATASOURCE_CLUSTER_N1_SERVERNAME: postgres
+      DATASOURCE_PORTNUMBER: "5432"
+      DATASOURCE_DATABASENAME: ${POSTGRES_DB:-autua_local}
+      # Role de aplicação (NOSUPERUSER). NÃO reutilizar POSTGRES_USER admin.
+      DATASOURCE_USER_NAME: ${DATASOURCE_USER_NAME:-autua_app}
+      DATASOURCE_PASSWORD: ${DATASOURCE_PASSWORD:?set DATASOURCE_PASSWORD in .env}
+      SPRING_FLYWAY_ENABLED: ${SPRING_FLYWAY_ENABLED:-true}
+      # Dump DES vs working tree: checksums históricos podem divergir — não altera checksums.
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: ${SPRING_FLYWAY_VALIDATE_ON_MIGRATE:-false}
+      # modelo-dados ausente no tip 6e89e8ae
+      SPRING_FLYWAY_LOCATIONS: ${SPRING_FLYWAY_LOCATIONS:-classpath:db/migration}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+      AUTUA_API_PERMISSION_BYPASS_ENABLED: "false"
+      CORS_URLS: ${CORS_URLS:-http://localhost:4200,http://127.0.0.1:4200}
+      # Auth local explícito (ativar profile auth-mock + preencher)
+      GELUS_ISSUER_URI: ${GELUS_ISSUER_URI:-}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${JWT_ISSUER_URI:-}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-}
+    ports:
+      - "127.0.0.1:${API_HOST_PORT:-8080}:8080"
+    healthcheck:
+      # JRE image sem wget/curl — probe TCP do Tomcat
+      test: ["CMD-SHELL", "timeout 3 bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 40
+      start_period: 120s
+    networks: [autua-local]
+
+  autua-bff:
+    build:
+      context: ../autua-bff
+      dockerfile: ../autua-local-compose/docker/bff/Dockerfile
+    image: autua-local/bff:${AUTUA_IMAGE_TAG:-dev}
+    container_name: autua-local-bff
+    restart: unless-stopped
+    depends_on:
+      autua-api:
+        condition: service_started
+    environment:
+      SERVER_PORT: "8081"
+      AUTUA_BFF_AUTUA_API_BASE_URL: http://autua-api:8080/autua-api
+      AUTUA_BFF_PUBLIC_BASE_URL: ${AUTUA_BFF_PUBLIC_BASE_URL:-http://127.0.0.1:8081/autua-bff}
+      AUTUA_BFF_CORS_ENABLED: "true"
+      AUTUA_BFF_CORS_ALLOWED_ORIGINS: ${AUTUA_BFF_CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://127.0.0.1:4200}
+      AUTUA_BFF_CORS_ALLOW_CREDENTIALS: "false"
+      # Sem fallback silencioso para subcontratacao — preencher só locais
+      AUTUA_BFF_AUTH_LOGIN_BASE_URL: ${AUTUA_BFF_AUTH_LOGIN_BASE_URL:-}
+      AUTUA_BFF_AUTENTICACAO_API_BASE_URL: ${AUTUA_BFF_AUTENTICACAO_API_BASE_URL:-}
+      GELUS_ISSUER_URI: ${GELUS_ISSUER_URI:-}
+      JWT_ISSUER_URI: ${JWT_ISSUER_URI:-}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${JWT_JWK_SET_URI:-}
+      GELUS_CLIENT_ID: ${GELUS_CLIENT_ID:-}
+      GELUS_CLIENT_SECRET: ${GELUS_CLIENT_SECRET:-}
+      GELUS_AUDIENCE: ${GELUS_AUDIENCE:-10197_radar}
+    ports:
+      - "127.0.0.1:${BFF_HOST_PORT:-8081}:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 3 bash -c 'exec 3<>/dev/tcp/127.0.0.1/8081' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 40
+      start_period: 90s
+    networks: [autua-local]
+
+  # Desenvolvimento: código WEB montado do clone (preserva WIP MAD / I5.1)
+  # node_modules anônimo evita conflito win32 vs linux no bind mount.
+  autua-web:
+    profiles: ["web"]
+    build:
+      context: ./docker/web
+      dockerfile: Dockerfile
+    image: autua-local/web:${AUTUA_IMAGE_TAG:-dev}
+    container_name: autua-local-web
+    restart: unless-stopped
+    working_dir: /web
+    volumes:
+      - ../autua-web-frontend:/web
+      - autua_web_node_modules:/web/node_modules
+    environment:
+      HUSKY: "0"
+    ports:
+      - "127.0.0.1:${WEB_HOST_PORT:-4200}:4200"
+    depends_on:
+      autua-bff:
+        condition: service_started
+    networks: [autua-local]
+
+  # Homologação: imagem nginx com build do working tree (sem montar node_modules host)
+  autua-web-homolog:
+    profiles: ["web-homolog"]
+    build:
+      context: ..
+      dockerfile: autua-local-compose/docker/web/Dockerfile.homolog
+    image: autua-local/web-homolog:${AUTUA_IMAGE_TAG:-dev}
+    container_name: autua-local-web-homolog
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${WEB_HOST_PORT:-4200}:4200"
+    depends_on:
+      autua-bff:
+        condition: service_started
+    networks: [autua-local]

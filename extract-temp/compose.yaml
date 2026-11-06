@@ -1,0 +1,35 @@
+# Projeto TEMPORÁRIO de extração B.1 — NÃO é o Compose definitivo.
+# Sem portas no host. Volume exclusivo. Dump montado somente leitura.
+name: autua-pg-extract
+
+networks:
+  extract-net:
+    name: autua-pg-extract-net
+    internal: true
+
+volumes:
+  autua_pg_extract_data:
+    name: autua_pg_extract_data
+
+services:
+  pg-extract:
+    image: postgres:17-alpine
+    container_name: autua-pg-extract
+    restart: "no"
+    environment:
+      POSTGRES_USER: extract
+      POSTGRES_PASSWORD: extract_temp_local_only
+      POSTGRES_DB: postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - autua_pg_extract_data:/var/lib/postgresql/data
+      - C:/dev/Projetos/serpro/dump-dbdes_10197_radar_aux-202610191647.sql:/dump/source.sql:ro
+      - ./scripts:/scripts
+      - ./out:/out
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U extract -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [extract-net]
+    # Sem ports: — isolamento total do host

@@ -1,0 +1,11 @@
+﻿# Overlay B.4.4-B.2 — GD-MVP-RC1 API/BFF ONLY
+# NÃO altera compose.yaml original.
+# Uso: docker compose -f compose.yaml -f overlays/gd-mvp-rc1.compose.yaml ...
+# Preserva postgres, auth-mock, web, redes, volumes, portas.
+# NÃO inclui APP. NÃO redefine build contexts (usar --no-build).
+
+services:
+  autua-api:
+    image: autua-api:gd-mvp-rc1-a079891a
+  autua-bff:
+    image: autua-bff:gd-mvp-rc1-76709128

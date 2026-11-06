@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+evidence/**
+!evidence/.gitkeep
+docker/auth-mock/keys/*
+!docker/auth-mock/keys/.gitkeep
+database/restore/incoming/*
+!database/restore/incoming/.gitkeep
+*.log
+**/__pycache__/
+*.pem
+*.key
+manifests/git-pins.json

@@ -1,0 +1,16 @@
+.git
+.idea
+.vscode
+target
+**/*.iml
+**/.DS_Store
+*.log
+docs
+ci-scripts
+.tools
+.m2
+**/*-run.log*
+.env
+.env.*
+*.md
+!README.md

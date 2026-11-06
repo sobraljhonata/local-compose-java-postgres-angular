@@ -1,0 +1,23 @@
+# Overlay B.4.4-B.3.1 — saneamento E2E local (CORS + health BFF).
+# NÃO altera compose.yaml nem o overlay RC1 de imagens.
+# Uso (junto com RC1):
+#   docker compose -f compose.yaml \
+#     -f overlays/gd-mvp-rc1.compose.yaml \
+#     -f overlays/gd-mvp-rc1-e2e-saneamento.compose.yaml \
+#     --profile auth-mock --profile web up -d --no-build --no-deps autua-bff
+#
+# Literais (não ${VAR}) evitam override por env de processo do host
+# (ex.: AUTUA_BFF_CORS_ALLOWED_ORIGINS=http://localhost:4200 no shell).
+#
+# NÃO inclui GESTAO_USUARIOS_API_URL na API — exige recreate da API
+# (fora do Gate 6 desta fase). Ver overlay pendente separado.
+
+services:
+  autua-bff:
+    environment:
+      AUTUA_BFF_CORS_ENABLED: "true"
+      AUTUA_BFF_CORS_ALLOWED_ORIGINS: "http://localhost:14200,http://127.0.0.1:14200"
+      AUTUA_BFF_CORS_ALLOW_CREDENTIALS: "false"
+      # Dependências não usadas no smoke GET Gestão — health indicators locais
+      MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+      MANAGEMENT_HEALTH_ELASTICSEARCH_ENABLED: "false"
