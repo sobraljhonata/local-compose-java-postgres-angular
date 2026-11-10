@@ -1,33 +1,33 @@
 {
-  "capturedAt": "2026-11-06T08:37:42.5781935-04:00",
-  "mode": "dev",
-  "repos": [
-    {
-      "name": "autua-api",
-      "path": "C:\\dev\\Projetos\\serpro\\autua-api",
-      "branch": "develop",
-      "sha": "9b898bc261b485bfd6fcbc1ebdf2050cca48ef15",
-      "shaShort": "9b898bc2",
-      "dirtyFileCount": 6,
-      "dirty": true
-    },
-    {
-      "name": "autua-bff",
-      "path": "C:\\dev\\Projetos\\serpro\\autua-bff",
-      "branch": "feature/enrollment-consumir-qr",
-      "sha": "aa576cb659ecb7a909c7afc6154ceb5d13a29e85",
-      "shaShort": "aa576cb",
-      "dirtyFileCount": 52,
-      "dirty": true
-    },
-    {
-      "name": "autua-web-frontend",
-      "path": "C:\\dev\\Projetos\\serpro\\autua-web-frontend",
-      "branch": "fix/filtros-data-placa",
-      "sha": "664ddcca28dafc3c761a730b60f704d5f977af0f",
-      "shaShort": "664ddcc",
-      "dirtyFileCount": 25,
-      "dirty": true
-    }
-  ]
+    "capturedAt":  "2026-11-09T10:41:12.5117248-04:00",
+    "mode":  "dev",
+    "repos":  [
+                  {
+                      "name":  "autua-api",
+                      "path":  "C:\\dev\\Projetos\\serpro\\autua-api",
+                      "branch":  "release/gd-mvp-rc1",
+                      "sha":  "a079891ae83843b588a6a5a224f6e5d8453a0f6a",
+                      "shaShort":  "a079891a",
+                      "dirtyFileCount":  9,
+                      "dirty":  true
+                  },
+                  {
+                      "name":  "autua-bff",
+                      "path":  "C:\\dev\\Projetos\\serpro\\autua-bff",
+                      "branch":  "release/gd-mvp-rc1",
+                      "sha":  "9a2009afeac9d4104832b0499c402d2c66352b9f",
+                      "shaShort":  "9a2009a",
+                      "dirtyFileCount":  20,
+                      "dirty":  true
+                  },
+                  {
+                      "name":  "autua-web-frontend",
+                      "path":  "C:\\dev\\Projetos\\serpro\\autua-web-frontend",
+                      "branch":  "release/gd-mvp-rc1",
+                      "sha":  "09d676cb2bccf05b870c81543212640e79745b5f",
+                      "shaShort":  "09d676c",
+                      "dirtyFileCount":  0,
+                      "dirty":  false
+                  }
+              ]
 }

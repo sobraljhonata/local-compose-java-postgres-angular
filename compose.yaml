@@ -55,8 +55,9 @@ services:
       LOCAL_CLIENT_ID: ${LOCAL_CLIENT_ID:-autua-local}
       LOCAL_CLIENT_SECRET: ${LOCAL_CLIENT_SECRET:-autua-local-secret}
       LOCAL_ORGAO_CNPJ: ${LOCAL_ORGAO_CNPJ:-00000000000191}
-      LOCAL_ORGAO_ID: ${LOCAL_ORGAO_ID:-9001}
-      LOCAL_UNIDADE_ID: ${LOCAL_UNIDADE_ID:-9001}
+      # Alinhado ao seed 10 (órgão/usuário sintéticos 919001 / unidade 91910)
+      LOCAL_ORGAO_ID: ${LOCAL_ORGAO_ID:-919001}
+      LOCAL_UNIDADE_ID: ${LOCAL_UNIDADE_ID:-91910}
       LOCAL_KEY_DIR: /var/lib/autua-local-keys
     ports:
       - "127.0.0.1:${AUTH_MOCK_HOST_PORT:-18082}:8080"
@@ -92,7 +93,7 @@ services:
       SPRING_FLYWAY_LOCATIONS: ${SPRING_FLYWAY_LOCATIONS:-classpath:db/migration}
       SPRING_JPA_HIBERNATE_DDL_AUTO: none
       AUTUA_API_PERMISSION_BYPASS_ENABLED: "false"
-      CORS_URLS: ${CORS_URLS:-http://localhost:4200,http://127.0.0.1:4200}
+      CORS_URLS: ${CORS_URLS:-http://localhost:4200,http://127.0.0.1:4200,http://localhost:14200,http://127.0.0.1:14200}
       # Auth local explícito (ativar profile auth-mock + preencher)
       GELUS_ISSUER_URI: ${GELUS_ISSUER_URI:-}
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${JWT_ISSUER_URI:-}
@@ -123,7 +124,7 @@ services:
       AUTUA_BFF_AUTUA_API_BASE_URL: http://autua-api:8080/autua-api
       AUTUA_BFF_PUBLIC_BASE_URL: ${AUTUA_BFF_PUBLIC_BASE_URL:-http://127.0.0.1:8081/autua-bff}
       AUTUA_BFF_CORS_ENABLED: "true"
-      AUTUA_BFF_CORS_ALLOWED_ORIGINS: ${AUTUA_BFF_CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://127.0.0.1:4200}
+      AUTUA_BFF_CORS_ALLOWED_ORIGINS: ${AUTUA_BFF_CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://127.0.0.1:4200,http://localhost:14200,http://127.0.0.1:14200}
       AUTUA_BFF_CORS_ALLOW_CREDENTIALS: "false"
       # Sem fallback silencioso para subcontratacao — preencher só locais
       AUTUA_BFF_AUTH_LOGIN_BASE_URL: ${AUTUA_BFF_AUTH_LOGIN_BASE_URL:-}

@@ -1,0 +1,11 @@
+# J05.5 — apontar gestao-usuarios + token de serviço para auth-mock (sem remoto).
+# Não altera auth-mock nem volumes. Uso:
+#   docker compose -f compose.yaml -f overlays/j05-gestao-usuarios-local.compose.yaml \
+#     up -d --no-deps --force-recreate --no-build autua-api
+services:
+  autua-api:
+    environment:
+      GESTAO_USUARIOS_API_URL: "http://auth-mock:8080"
+      AUTUA_API_GELUS_PERMISSIONS_ENDPOINT: "http://auth-mock:8080/realms/autua-local/protocol/openid-connect/token"
+      AUTUA_API_GELUS_CLIENT_ID: "autua-local"
+      AUTUA_API_GELUS_CLIENT_SECRET: "autua-local-secret"

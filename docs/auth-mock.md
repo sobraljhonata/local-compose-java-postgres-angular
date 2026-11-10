@@ -1,46 +1,56 @@
 # Autenticação local (auth-mock)
 
-## Contratos confirmados (código)
-
-Fonte: `autua-local-e2e` identity + `autua-bff` `application.yml` + API Gelus/JWT.
+## Contratos
 
 | Contrato | Uso |
 |----------|-----|
 | OIDC discovery / JWKS RS256 | Resource server API/BFF |
 | `iss` / `aud` (`10197_radar`) / `azp` | Validação JWT |
-| Scopes Gelus `p~RECURSO~OPERACAO` | Converter → `OPERACAO RECURSO` |
-| `GET /auth/login/authorize-url` + `POST .../token` | BFF / WEB login |
+| Scopes Gelus `p~RECURSO~OPERACAO` | Converter → autorização |
+| `GET /auth/login/authorize-url` + token | BFF / WEB login |
 | Vínculo usuário/órgão (stub) | Gestão usuários |
+| `GET /e2e/token?user=local-ok` | Smoke (não usar em prod) |
 
-Claims fictícios usados pelo mock: CPF sintético, `orgao` CNPJ fictício, scopes de dispositivo (CONSULTAR, AUTORIZAR, ATIVAR_DESATIVAR, …). Tokens **curta duração**, assinados com chave **gerada no volume local** (`docker/auth-mock/keys`).
+Chaves geradas em `docker/auth-mock/keys` (gitignored).
 
-## Ativação explícita
+## Usuários sintéticos (`docker/auth-mock/server.py`)
+
+| Key | Papel | Enrollment `CADASTRAR_LOTE` |
+|-----|-------|----------------------------|
+| `local-ok` | Gestor de Dispositivos + Agente + scopes DI | **Sim** |
+| `local-403` | Agente sem gestor | Não |
+| `local-missing` | Só LOGIN | Não |
+
+Scopes DI em `local-ok`:
+
+- `DISPOSITIVO_INSTITUCIONAL:CADASTRAR_LOTE`
+- `DISPOSITIVO_INSTITUCIONAL:CONSULTAR`
+- `DISPOSITIVO_INSTITUCIONAL:ATIVAR_DESATIVAR`
+
+CPF sintético `39053344705` · CNPJ órgão `00000000000191` · IDs Compose `LOCAL_ORGAO_ID=919001` (seed 10).
+
+## Ativação
 
 ```powershell
-docker compose --profile auth-mock up -d auth-mock
+docker compose --env-file .env --profile auth-mock build auth-mock
+docker compose --env-file .env --profile auth-mock up -d auth-mock
 ```
 
-Preencher no `.env` (exemplo):
+Preencher issuer/JWKS no `.env` (ver `.env.example`).
 
-```env
-GELUS_ISSUER_URI=http://auth-mock:8080/realms/autua-local
-JWT_ISSUER_URI=http://auth-mock:8080/realms/autua-local
-JWT_JWK_SET_URI=http://auth-mock:8080/realms/autua-local/protocol/openid-connect/certs
-AUTUA_BFF_AUTH_LOGIN_BASE_URL=http://auth-mock:8080/auth/login
-AUTUA_BFF_AUTENTICACAO_API_BASE_URL=http://auth-mock:8080
-GELUS_CLIENT_ID=autua-local
-GELUS_CLIENT_SECRET=autua-local-secret
-LOCAL_PUBLIC_BASE=http://127.0.0.1:18082
+**Importante:** após atualizar `server.py`, **rebuild** a imagem. `docker cp` em container antigo é paliativo de ensaio, não o fluxo oficial.
+
+## Fixture PG
+
+Auth-mock emite JWT; a API resolve gestor/órgão no banco. Sem seed 10, create enrollment falha (“Gestor e órgão do contexto…”).
+
+```powershell
+.\scripts\seed-minimo.ps1 -Authorized
 ```
 
 ## Proibições
 
-- Não reutilizar token expirado real como credencial.
-- Não desabilitar validação de assinatura/exp/iss/aud.
-- Não aceitar issuer de VAL/subcontratacao neste profile.
+- Não reutilizar tokens reais / issuer de `sub`.
+- Não desabilitar validação JWT na API/BFF.
 - Não registrar tokens completos em relatórios.
-- Não alterar security de produção nos repositórios de aplicação para acomodar o mock (somente env Compose).
-
-## Nota
-
-Implementação adaptada do servidor E2E existente (contratos já exercitados). Profile **opcional**; stack API/BFF sobe sem ele, com auth externa se configurada — preferível local-only na Fase B.
+- Não enfraquecer `@PreAuthorize` / scopes na API.

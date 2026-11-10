@@ -7,6 +7,8 @@ docker/auth-mock/keys/*
 !docker/auth-mock/keys/.gitkeep
 database/restore/incoming/*
 !database/restore/incoming/.gitkeep
+config/web/.runtime/
+_tmp-*/
 *.log
 **/__pycache__/
 *.pem
